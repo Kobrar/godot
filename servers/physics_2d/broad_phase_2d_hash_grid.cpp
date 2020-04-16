@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -394,7 +394,7 @@ void BroadPhase2DHashGrid::remove(ID p_id) {
 CollisionObject2DSW *BroadPhase2DHashGrid::get_object(ID p_id) const {
 
 	const Map<ID, Element>::Element *E = element_map.find(p_id);
-	ERR_FAIL_COND_V(!E, NULL);
+	ERR_FAIL_COND_V(!E, nullptr);
 	return E->get().owner;
 }
 bool BroadPhase2DHashGrid::is_static(ID p_id) const {
@@ -646,7 +646,7 @@ BroadPhase2DHashGrid::BroadPhase2DHashGrid() {
 	ProjectSettings::get_singleton()->set_custom_property_info("physics/2d/large_object_surface_threshold_in_cells", PropertyInfo(Variant::INT, "physics/2d/large_object_surface_threshold_in_cells", PROPERTY_HINT_RANGE, "0,1024,1,or_greater"));
 
 	for (uint32_t i = 0; i < hash_table_size; i++)
-		hash_table[i] = NULL;
+		hash_table[i] = nullptr;
 	pass = 1;
 
 	current = 0;
@@ -673,7 +673,7 @@ public IEnumerable<Point3D> GetCellsOnRay(Ray ray, int maxDepth)
     // "A Fast Voxel Traversal Algorithm for Ray Tracing"
     // John Amanatides, Andrew Woo
     // http://www.cse.yorku.ca/~amana/research/grid.pdf
-    // http://www.devmaster.net/articles/raytracing_series/A%20faster%20voxel%20traversal%20algorithm%20for%20ray%20tracing.pdf
+    // https://web.archive.org/web/20100616193049/http://www.devmaster.net/articles/raytracing_series/A%20faster%20voxel%20traversal%20algorithm%20for%20ray%20tracing.pdf
 
     // NOTES:
     // * This code assumes that the ray's position and direction are in 'cell coordinates', which means

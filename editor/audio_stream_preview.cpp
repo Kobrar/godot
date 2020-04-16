@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -129,7 +129,7 @@ void AudioStreamPreviewGenerator::_preview_thread(void *p_preview) {
 			float max = -1000;
 			float min = 1000;
 			int from = uint64_t(i) * to_read / to_write;
-			int to = uint64_t(i + 1) * to_read / to_write;
+			int to = (uint64_t(i) + 1) * to_read / to_write;
 			to = MIN(to, to_read);
 			from = MIN(from, to_read - 1);
 			if (to == from) {
@@ -212,7 +212,7 @@ void AudioStreamPreviewGenerator::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("preview_updated", PropertyInfo(Variant::INT, "obj_id")));
 }
 
-AudioStreamPreviewGenerator *AudioStreamPreviewGenerator::singleton = NULL;
+AudioStreamPreviewGenerator *AudioStreamPreviewGenerator::singleton = nullptr;
 
 void AudioStreamPreviewGenerator::_notification(int p_what) {
 	if (p_what == NOTIFICATION_PROCESS) {
@@ -221,7 +221,7 @@ void AudioStreamPreviewGenerator::_notification(int p_what) {
 			if (!E->get().generating) {
 				if (E->get().thread) {
 					Thread::wait_to_finish(E->get().thread);
-					E->get().thread = NULL;
+					E->get().thread = nullptr;
 				}
 				if (!ObjectDB::get_instance(E->key())) { //no longer in use, get rid of preview
 					to_erase.push_back(E->key());

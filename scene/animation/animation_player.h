@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,12 +32,9 @@
 #define ANIMATION_PLAYER_H
 
 #include "scene/2d/node_2d.h"
-#include "scene/3d/skeleton.h"
-#include "scene/3d/spatial.h"
+#include "scene/3d/node_3d.h"
+#include "scene/3d/skeleton_3d.h"
 #include "scene/resources/animation.h"
-/**
-	@author Juan Linietsky <reduzio@gmail.com>
-*/
 
 #ifdef TOOLS_ENABLED
 // To save/restore animated values
@@ -68,6 +65,11 @@ public:
 		ANIMATION_PROCESS_MANUAL,
 	};
 
+	enum AnimationMethodCallMode {
+		ANIMATION_METHOD_CALL_DEFERRED,
+		ANIMATION_METHOD_CALL_IMMEDIATE,
+	};
+
 private:
 	enum {
 
@@ -88,9 +90,9 @@ private:
 		uint32_t id;
 		RES resource;
 		Node *node;
-		Spatial *spatial;
+		Node3D *spatial;
 		Node2D *node_2d;
-		Skeleton *skeleton;
+		Skeleton3D *skeleton;
 		int bone_idx;
 		// accumulated transforms
 
@@ -116,9 +118,9 @@ private:
 			Variant capture;
 
 			PropertyAnim() :
-					owner(NULL),
+					owner(nullptr),
 					special(SP_NONE),
-					object(NULL),
+					object(nullptr),
 					accum_pass(0) {}
 		};
 
@@ -133,9 +135,9 @@ private:
 			uint64_t accum_pass;
 
 			BezierAnim() :
-					owner(NULL),
+					owner(nullptr),
 					bezier_accum(0.0),
-					object(NULL),
+					object(nullptr),
 					accum_pass(0) {}
 		};
 
@@ -143,10 +145,10 @@ private:
 
 		TrackNodeCache() :
 				id(0),
-				node(NULL),
-				spatial(NULL),
-				node_2d(NULL),
-				skeleton(NULL),
+				node(nullptr),
+				spatial(nullptr),
+				node_2d(nullptr),
+				skeleton(nullptr),
 				bone_idx(-1),
 				accum_pass(0),
 				audio_playing(false),
@@ -157,17 +159,15 @@ private:
 
 	struct TrackNodeCacheKey {
 
-		uint32_t id;
+		ObjectID id;
 		int bone_idx;
 
 		inline bool operator<(const TrackNodeCacheKey &p_right) const {
 
-			if (id < p_right.id)
-				return true;
-			else if (id > p_right.id)
-				return false;
-			else
+			if (id == p_right.id)
 				return bone_idx < p_right.bone_idx;
+			else
+				return id < p_right.id;
 		}
 	};
 
@@ -212,7 +212,7 @@ private:
 
 			pos = 0;
 			speed_scale = 1.0;
-			from = NULL;
+			from = nullptr;
 		}
 	};
 
@@ -246,6 +246,7 @@ private:
 
 	String autoplay;
 	AnimationProcessMode animation_process_mode;
+	AnimationMethodCallMode method_call_mode;
 	bool processing;
 	bool active;
 
@@ -263,11 +264,11 @@ private:
 	void _stop_playing_caches();
 
 	// bind helpers
-	PoolVector<String> _get_animation_list() const {
+	Vector<String> _get_animation_list() const {
 
 		List<StringName> animations;
 		get_animation_list(&animations);
-		PoolVector<String> ret;
+		Vector<String> ret;
 		while (animations.size()) {
 
 			ret.push_back(animations.front()->get());
@@ -315,7 +316,7 @@ public:
 	void play(const StringName &p_name = StringName(), float p_custom_blend = -1, float p_custom_scale = 1.0, bool p_from_end = false);
 	void play_backwards(const StringName &p_name = StringName(), float p_custom_blend = -1);
 	void queue(const StringName &p_name);
-	PoolVector<String> get_queue();
+	Vector<String> get_queue();
 	void clear_queue();
 	void stop(bool p_reset = true);
 	bool is_playing() const;
@@ -337,6 +338,9 @@ public:
 
 	void set_animation_process_mode(AnimationProcessMode p_mode);
 	AnimationProcessMode get_animation_process_mode() const;
+
+	void set_method_call_mode(AnimationMethodCallMode p_mode);
+	AnimationMethodCallMode get_method_call_mode() const;
 
 	void seek(float p_time, bool p_update = false);
 	void seek_delta(float p_time, float p_delta);
@@ -363,5 +367,6 @@ public:
 };
 
 VARIANT_ENUM_CAST(AnimationPlayer::AnimationProcessMode);
+VARIANT_ENUM_CAST(AnimationPlayer::AnimationMethodCallMode);
 
 #endif

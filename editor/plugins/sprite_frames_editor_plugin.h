@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,7 +33,7 @@
 
 #include "editor/editor_node.h"
 #include "editor/editor_plugin.h"
-#include "scene/2d/animated_sprite.h"
+#include "scene/2d/animated_sprite_2d.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/file_dialog.h"
 #include "scene/gui/split_container.h"
@@ -73,7 +73,10 @@ class SpriteFramesEditor : public HSplitContainer {
 
 	StringName edited_anim;
 
+	ConfirmationDialog *delete_dialog;
+
 	ConfirmationDialog *split_sheet_dialog;
+	ScrollContainer *splite_sheet_scroll;
 	TextureRect *split_sheet_preview;
 	SpinBox *split_sheet_h;
 	SpinBox *split_sheet_v;
@@ -83,7 +86,7 @@ class SpriteFramesEditor : public HSplitContainer {
 
 	void _load_pressed();
 	void _load_scene_pressed();
-	void _file_load_request(const PoolVector<String> &p_path, int p_at_pos = -1);
+	void _file_load_request(const Vector<String> &p_path, int p_at_pos = -1);
 	void _copy_pressed();
 	void _paste_pressed();
 	void _empty_pressed();
@@ -97,6 +100,7 @@ class SpriteFramesEditor : public HSplitContainer {
 	void _animation_name_edited();
 	void _animation_add();
 	void _animation_remove();
+	void _animation_remove_confirmed();
 	void _animation_loop_changed();
 	void _animation_fps_changed(double p_value);
 
@@ -115,6 +119,7 @@ class SpriteFramesEditor : public HSplitContainer {
 	void _sheet_spin_changed(double);
 	void _sheet_preview_input(const Ref<InputEvent> &p_event);
 	void _sheet_add_frames();
+	void _sheet_select_clear_all_frames();
 
 protected:
 	void _notification(int p_what);

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -145,7 +145,7 @@ static void _generate_contacts_from_supports(const Vector2 *p_points_A, int p_po
 				_generate_contacts_point_edge,
 		},
 		{
-				0,
+				nullptr,
 				_generate_contacts_edge_edge,
 		}
 	};
@@ -172,8 +172,8 @@ static void _generate_contacts_from_supports(const Vector2 *p_points_A, int p_po
 		points_B = p_points_B;
 	}
 
-	int version_A = (pointcount_A > 3 ? 3 : pointcount_A) - 1;
-	int version_B = (pointcount_B > 3 ? 3 : pointcount_B) - 1;
+	int version_A = (pointcount_A > 2 ? 2 : pointcount_A) - 1;
+	int version_B = (pointcount_B > 2 ? 2 : pointcount_B) - 1;
 
 	GenerateContactsFunc contacts_func = generate_contacts_func_table[version_A][version_B];
 	ERR_FAIL_COND(!contacts_func);
@@ -237,8 +237,8 @@ public:
 
 		Vector2 axis = p_axis;
 
-		if (Math::abs(axis.x) < CMP_EPSILON &&
-				Math::abs(axis.y) < CMP_EPSILON) {
+		if (Math::is_zero_approx(axis.x) &&
+				Math::is_zero_approx(axis.y)) {
 			// strange case, try an upwards separator
 			axis = Vector2(0.0, 1.0);
 		}
@@ -313,10 +313,12 @@ public:
 		if (best_axis == Vector2(0.0, 0.0))
 			return;
 
-		callback->collided = true;
+		if (callback) {
+			callback->collided = true;
 
-		if (!callback->callback)
-			return; //only collide, no callback
+			if (!callback->callback)
+				return; //only collide, no callback
+		}
 		static const int max_supports = 2;
 
 		Vector2 supports_A[max_supports];
@@ -354,12 +356,13 @@ public:
 				supports_B[i] += best_axis * margin_B;
 			}
 		}
+		if (callback) {
+			callback->normal = best_axis;
+			_generate_contacts_from_supports(supports_A, support_count_A, supports_B, support_count_B, callback);
 
-		callback->normal = best_axis;
-		_generate_contacts_from_supports(supports_A, support_count_A, supports_B, support_count_B, callback);
-
-		if (callback && callback->sep_axis && *callback->sep_axis != Vector2())
-			*callback->sep_axis = Vector2(); //invalidate previous axis (no test)
+			if (callback->sep_axis && *callback->sep_axis != Vector2())
+				*callback->sep_axis = Vector2(); //invalidate previous axis (no test)
+		}
 	}
 
 	_FORCE_INLINE_ SeparatorAxisTest2D(const ShapeA *p_shape_A, const Transform2D &p_transform_a, const ShapeB *p_shape_B, const Transform2D &p_transform_b, _CollectorCallback2D *p_collector, const Vector2 &p_motion_A = Vector2(), const Vector2 &p_motion_B = Vector2(), real_t p_margin_A = 0, real_t p_margin_B = 0) {
@@ -1039,16 +1042,16 @@ static void _collision_convex_polygon_convex_polygon(const Shape2DSW *p_a, const
 
 bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D &p_transform_A, const Vector2 &p_motion_A, const Shape2DSW *p_shape_B, const Transform2D &p_transform_B, const Vector2 &p_motion_B, CollisionSolver2DSW::CallbackResult p_result_callback, void *p_userdata, bool p_swap, Vector2 *sep_axis, real_t p_margin_A, real_t p_margin_B) {
 
-	Physics2DServer::ShapeType type_A = p_shape_A->get_type();
+	PhysicsServer2D::ShapeType type_A = p_shape_A->get_type();
 
-	ERR_FAIL_COND_V(type_A == Physics2DServer::SHAPE_LINE, false);
-	//ERR_FAIL_COND_V(type_A==Physics2DServer::SHAPE_RAY,false);
+	ERR_FAIL_COND_V(type_A == PhysicsServer2D::SHAPE_LINE, false);
+	//ERR_FAIL_COND_V(type_A==PhysicsServer2D::SHAPE_RAY,false);
 	ERR_FAIL_COND_V(p_shape_A->is_concave(), false);
 
-	Physics2DServer::ShapeType type_B = p_shape_B->get_type();
+	PhysicsServer2D::ShapeType type_B = p_shape_B->get_type();
 
-	ERR_FAIL_COND_V(type_B == Physics2DServer::SHAPE_LINE, false);
-	//ERR_FAIL_COND_V(type_B==Physics2DServer::SHAPE_RAY,false);
+	ERR_FAIL_COND_V(type_B == PhysicsServer2D::SHAPE_LINE, false);
+	//ERR_FAIL_COND_V(type_B==PhysicsServer2D::SHAPE_RAY,false);
 	ERR_FAIL_COND_V(p_shape_B->is_concave(), false);
 
 	static const CollisionFunc collision_table[5][5] = {
@@ -1057,25 +1060,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<false, false, false>,
 				_collision_segment_capsule<false, false, false>,
 				_collision_segment_convex_polygon<false, false, false> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<false, false, false>,
 				_collision_circle_rectangle<false, false, false>,
 				_collision_circle_capsule<false, false, false>,
 				_collision_circle_convex_polygon<false, false, false> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<false, false, false>,
 				_collision_rectangle_capsule<false, false, false>,
 				_collision_rectangle_convex_polygon<false, false, false> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<false, false, false>,
 				_collision_capsule_convex_polygon<false, false, false> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<false, false, false> }
 
 	};
@@ -1086,25 +1089,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<true, false, false>,
 				_collision_segment_capsule<true, false, false>,
 				_collision_segment_convex_polygon<true, false, false> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<true, false, false>,
 				_collision_circle_rectangle<true, false, false>,
 				_collision_circle_capsule<true, false, false>,
 				_collision_circle_convex_polygon<true, false, false> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<true, false, false>,
 				_collision_rectangle_capsule<true, false, false>,
 				_collision_rectangle_convex_polygon<true, false, false> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<true, false, false>,
 				_collision_capsule_convex_polygon<true, false, false> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<true, false, false> }
 
 	};
@@ -1115,25 +1118,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<false, true, false>,
 				_collision_segment_capsule<false, true, false>,
 				_collision_segment_convex_polygon<false, true, false> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<false, true, false>,
 				_collision_circle_rectangle<false, true, false>,
 				_collision_circle_capsule<false, true, false>,
 				_collision_circle_convex_polygon<false, true, false> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<false, true, false>,
 				_collision_rectangle_capsule<false, true, false>,
 				_collision_rectangle_convex_polygon<false, true, false> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<false, true, false>,
 				_collision_capsule_convex_polygon<false, true, false> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<false, true, false> }
 
 	};
@@ -1144,25 +1147,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<true, true, false>,
 				_collision_segment_capsule<true, true, false>,
 				_collision_segment_convex_polygon<true, true, false> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<true, true, false>,
 				_collision_circle_rectangle<true, true, false>,
 				_collision_circle_capsule<true, true, false>,
 				_collision_circle_convex_polygon<true, true, false> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<true, true, false>,
 				_collision_rectangle_capsule<true, true, false>,
 				_collision_rectangle_convex_polygon<true, true, false> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<true, true, false>,
 				_collision_capsule_convex_polygon<true, true, false> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<true, true, false> }
 
 	};
@@ -1173,25 +1176,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<false, false, true>,
 				_collision_segment_capsule<false, false, true>,
 				_collision_segment_convex_polygon<false, false, true> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<false, false, true>,
 				_collision_circle_rectangle<false, false, true>,
 				_collision_circle_capsule<false, false, true>,
 				_collision_circle_convex_polygon<false, false, true> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<false, false, true>,
 				_collision_rectangle_capsule<false, false, true>,
 				_collision_rectangle_convex_polygon<false, false, true> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<false, false, true>,
 				_collision_capsule_convex_polygon<false, false, true> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<false, false, true> }
 
 	};
@@ -1202,25 +1205,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<true, false, true>,
 				_collision_segment_capsule<true, false, true>,
 				_collision_segment_convex_polygon<true, false, true> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<true, false, true>,
 				_collision_circle_rectangle<true, false, true>,
 				_collision_circle_capsule<true, false, true>,
 				_collision_circle_convex_polygon<true, false, true> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<true, false, true>,
 				_collision_rectangle_capsule<true, false, true>,
 				_collision_rectangle_convex_polygon<true, false, true> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<true, false, true>,
 				_collision_capsule_convex_polygon<true, false, true> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<true, false, true> }
 
 	};
@@ -1231,25 +1234,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<false, true, true>,
 				_collision_segment_capsule<false, true, true>,
 				_collision_segment_convex_polygon<false, true, true> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<false, true, true>,
 				_collision_circle_rectangle<false, true, true>,
 				_collision_circle_capsule<false, true, true>,
 				_collision_circle_convex_polygon<false, true, true> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<false, true, true>,
 				_collision_rectangle_capsule<false, true, true>,
 				_collision_rectangle_convex_polygon<false, true, true> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<false, true, true>,
 				_collision_capsule_convex_polygon<false, true, true> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<false, true, true> }
 
 	};
@@ -1260,25 +1263,25 @@ bool sat_2d_calculate_penetration(const Shape2DSW *p_shape_A, const Transform2D 
 				_collision_segment_rectangle<true, true, true>,
 				_collision_segment_capsule<true, true, true>,
 				_collision_segment_convex_polygon<true, true, true> },
-		{ 0,
+		{ nullptr,
 				_collision_circle_circle<true, true, true>,
 				_collision_circle_rectangle<true, true, true>,
 				_collision_circle_capsule<true, true, true>,
 				_collision_circle_convex_polygon<true, true, true> },
-		{ 0,
-				0,
+		{ nullptr,
+				nullptr,
 				_collision_rectangle_rectangle<true, true, true>,
 				_collision_rectangle_capsule<true, true, true>,
 				_collision_rectangle_convex_polygon<true, true, true> },
-		{ 0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
 				_collision_capsule_capsule<true, true, true>,
 				_collision_capsule_convex_polygon<true, true, true> },
-		{ 0,
-				0,
-				0,
-				0,
+		{ nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
 				_collision_convex_polygon_convex_polygon<true, true, true> }
 
 	};
